@@ -17,8 +17,6 @@ python -m venv venv
 source .venv/bin/activate
 ```
 
-
-
 Выполните установку зависимостей
 ```
 pip install -r requirements.txt
@@ -27,4 +25,20 @@ pip install -r requirements.txt
 Затем запуститет локальный сервер
 ```
 python main.py
+```
+
+### Запуск vite для сборки frontend'а
+Из корня проекта перейдите в папку фронтенда
+```
+cd frontend
+```
+
+Установите зависимости через npm:
+```
+npm install
+```
+
+Запустите сервер фронтенда
+```
+npm run dev
 ```
