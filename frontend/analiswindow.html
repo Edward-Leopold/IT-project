@@ -1,115 +1,196 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <title>CSV Загрузчик и Анализатор</title>
-
+    <meta charset="UTF-8"/>
+    <title>CSV Загрузчик и Анализатор Аномалий</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px auto;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 0;
             padding: 20px;
+            background-color: #f4f6f8;
+            color: #333;
+            line-height: 1.6;
         }
+
         .container {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            color: #ff6b00;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
+            max-width: 1000px;
+            margin: 40px auto;
         }
+
+        h2, h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 30px;
+            text-align: left;
+            width: 100%;
+        }
+
         .upload-area {
-            border: 2px dashed #ccc;
-            padding: 20px;
+            border: 2px dashed #3498db;
+            padding: 30px;
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: border-color 0.3s ease, background-color 0.3s ease; /* Плавные переходы */
+            border-radius: 8px;
+            background-color: #eaf5ff;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .upload-area:hover {
-            border-color: #666;
-            background-color: #f0f0f0;
+
+        .upload-area.dragover {
+            border-color: #2980b9; /* Более темный синий при наведении */
+            background-color: #d4e9f9; /* Светлее синий фон */
         }
+
         #fileInput {
             display: none;
         }
-        #preview, #resultsArea {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: white;
-            border-radius: 4px;
+
+        #preview, #resultsArea, #chartContainerWrapper {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #fdfdfd;
+            border: 1px solid #e7e7e7;
+            border-radius: 8px;
             text-align: left;
-            width: 80%; /* Можно задать ширину для таблиц, чтобы они не были слишком широкими */
-            max-width: 700px; /* И максимальную ширину */
-            overflow-x: auto; /* Добавить горизонтальный скролл, если таблица шире */
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
         }
+
+        #chartContainerWrapper {
+            display: none;
+        }
+
         .preview-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 15px;
         }
+
         .preview-table th,
         .preview-table td {
-            padding: 8px;
+            padding: 12px 15px;
             text-align: left;
-            border: 1px solid #ddd; /* Добавил рамку для всех ячеек для наглядности */
+            border-bottom: 1px solid #eee;
         }
+
         .preview-table th {
-            background-color: #f4f4f4;
-            /* display: block;  УДАЛЕНО */
+            background-color: #eaf5ff;
+            color: #2c3e50;
+            font-weight: 600;
+            border-top: 1px solid #ddd;
         }
+
+        .preview-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
         .big-button {
-            background-color: #ff6b00;
+            background-color: #3498db;
             color: #fff;
-            font-size: 20px;
-            padding: 15px 40px;
+            font-size: 16px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 500;
             display: inline-block;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.2s ease, transform 0.1s ease;
             width: fit-content;
-            margin: 10px auto;
+            margin: 20px auto;
             cursor: pointer;
         }
+
+        .big-button:hover:not(:disabled) { /* :not(:disabled) чтобы стиль не применялся к заблокированной кнопке */
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .big-button:active:not(:disabled) {
+            transform: translateY(0px);
+        }
+
+        .big-button:disabled { /* Стиль для заблокированной кнопки */
+            background-color: #a0c4e0;
+            cursor: not-allowed;
+        }
+
         #analyzeButton {
             display: none;
         }
+
         #statusMessage {
-            margin-top: 10px;
-            font-weight: bold;
+            margin-top: 20px;
+            font-weight: 500;
+            min-height: 1.5em;
+            font-size: 1.1em;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s ease infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h2>Загрузка и анализ CSV файла</h2>
+    <h2>Анализатор аномалий временных рядов</h2>
 
-    <div
-            class="upload-area"
-            id="uploadArea"
-            onclick="document.getElementById('fileInput').click()"
-    >
-        <p id="uploadText">Перетащите файл сюда или кликните для выбора</p>
-        <input type="file" id="fileInput" accept=".csv" style="display: none" />
+    <div class="upload-area" id="uploadArea">
+        <p id="uploadText">Перетащите CSV файл сюда или кликните для выбора</p>
+        <input type="file" id="fileInput" accept=".csv"/>
     </div>
 
     <div id="preview"></div>
+    <div class="spinner" id="loadingSpinner"></div>
     <div id="statusMessage"></div>
 
-    <button id="analyzeButton" class="big-button">Проанализировать!</button>
+    <button id="analyzeButton" class="big-button">Анализировать!</button>
+
+    <div id="chartContainerWrapper">
+        <h3>График обнаружения аномалий:</h3>
+        <div id="chartContainer" style="position: relative; height:550px; width:100%;">
+            <canvas id="anomalyChart"></canvas>
+        </div>
+    </div>
 
     <div id="resultsArea"></div>
-
 </div>
 
 <script>
     let csvFileContent = null;
+    let myAnomalyChart = null;
 
     const fileInput = document.getElementById("fileInput");
     const previewDiv = document.getElementById("preview");
@@ -118,56 +199,28 @@
     const uploadText = document.getElementById("uploadText");
     const resultsArea = document.getElementById("resultsArea");
     const statusMessage = document.getElementById("statusMessage");
+    const chartContainerWrapper = document.getElementById("chartContainerWrapper");
+    const loadingSpinner = document.getElementById("loadingSpinner");
 
+
+    uploadArea.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", function (e) {
         const file = e.target.files[0];
-        statusMessage.textContent = '';
-        resultsArea.innerHTML = '';
-        csvFileContent = null;
-        analyzeButton.style.display = "none";
-        previewDiv.innerHTML = ''; // Очищаем превью при выборе нового файла
+        resetState();
 
-        if (file && (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) ) { // Более надежная проверка типа файла
+        if (file && (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv"))) {
             uploadText.textContent = `Выбран файл: ${file.name}`;
             const reader = new FileReader();
-
             reader.onload = function (event) {
                 csvFileContent = event.target.result;
-                const lines = csvFileContent.split(/\r\n|\n/).slice(0, 6); // Учитываем разные окончания строк
-
-                let tableHTML = '<table class="preview-table">';
-                if (lines.length > 0 && lines[0].trim() !== "") {
-                    tableHTML += `<thead><tr>${lines[0]
-                        .split(",")
-                        .map((cell) => `<th>${cell.trim()}</th>`)
-                        .join("")}</tr></thead>`;
-                    
-                    tableHTML += '<tbody>';
-                    for (let i = 1; i < lines.length; i++) {
-                        if (lines[i].trim() === "") continue;
-                        tableHTML += `<tr>${lines[i]
-                            .split(",")
-                            .map((cell) => `<td>${cell.trim()}</td>`)
-                            .join("")}</tr>`;
-                    }
-                    tableHTML += '</tbody>';
-                } else {
-                    tableHTML += "<tr><td>Файл пуст или неверный формат заголовка.</td></tr>";
-                }
-                tableHTML += "</table>";
-                previewDiv.innerHTML = `
-                    <h3>Предпросмотр данных (первые строки):</h3>
-                    ${tableHTML}
-                `;
-                analyzeButton.style.display = "block";
+                displayPreview(csvFileContent);
+                analyzeButton.style.display = "inline-block";
             };
-
-            reader.onerror = function() {
+            reader.onerror = function () {
                 previewDiv.innerHTML = "<p style='color: red;'>Ошибка при чтении файла.</p>";
                 csvFileContent = null;
             }
-
             reader.readAsText(file);
         } else if (file) {
             previewDiv.innerHTML = "<p style='color: red;'>Пожалуйста, выберите CSV файл.</p>";
@@ -175,25 +228,67 @@
         }
     });
 
-    analyzeButton.addEventListener("click", async function() {
+    function resetState() {
+        statusMessage.textContent = '';
+        resultsArea.innerHTML = '';
+        csvFileContent = null;
+        analyzeButton.style.display = "none";
+        analyzeButton.disabled = false;
+        previewDiv.innerHTML = '';
+        chartContainerWrapper.style.display = "none";
+        loadingSpinner.style.display = "none";
+        uploadText.textContent = "Перетащите CSV файл сюда или кликните для выбора";
+        if (myAnomalyChart) {
+            myAnomalyChart.destroy();
+            myAnomalyChart = null;
+        }
+    }
+
+    function displayPreview(content) {
+        const lines = content.split(/\r\n|\n/).slice(0, 6);
+        let tableHTML = '<table class="preview-table">';
+        if (lines.length > 0 && lines[0].trim() !== "") {
+            const headers = lines[0].split(",").map(cell => `<th>${cell.trim()}</th>`).join("");
+            tableHTML += `<thead><tr>${headers}</tr></thead>`;
+            tableHTML += '<tbody>';
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === "") continue;
+                const cells = lines[i].split(",").map(cell => `<td>${cell.trim()}</td>`).join("");
+                tableHTML += `<tr>${cells}</tr>`;
+            }
+            tableHTML += '</tbody>';
+        } else {
+            tableHTML += "<tr><td>Файл пуст или неверный формат заголовка.</td></tr>";
+        }
+        tableHTML += "</table>";
+        previewDiv.innerHTML = `<h3>Предпросмотр данных (первые строки):</h3>${tableHTML}`;
+    }
+
+    analyzeButton.addEventListener("click", async function () {
         if (!csvFileContent) {
             statusMessage.textContent = "Сначала загрузите CSV файл.";
             statusMessage.style.color = "red";
             return;
         }
-
-        statusMessage.textContent = "Идет анализ данных...";
-        statusMessage.style.color = "orange";
+        statusMessage.textContent = "";
         resultsArea.innerHTML = '';
+        chartContainerWrapper.style.display = "none";
+        if (myAnomalyChart) {
+            myAnomalyChart.destroy();
+            myAnomalyChart = null;
+        }
+        loadingSpinner.style.display = "block";
+        analyzeButton.disabled = true;
 
         try {
             const response = await fetch('/api/anomalies', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ csvDATA: csvFileContent }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({csvDATA: csvFileContent}),
             });
+
+            analyzeButton.disabled = false;
+            loadingSpinner.style.display = "none";
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({error: "Не удалось получить детали ошибки с сервера."}));
@@ -207,6 +302,8 @@
 
         } catch (error) {
             console.error('Ошибка при отправке данных:', error);
+            analyzeButton.disabled = false;
+            loadingSpinner.style.display = "none";
             statusMessage.textContent = `Ошибка: ${error.message}`;
             statusMessage.style.color = "red";
         }
@@ -214,13 +311,13 @@
 
     function displayResults(data) {
         let html = "<h3>Результаты анализа:</h3>";
-
         if (data.error) {
             html += `<p style="color: red;">Ошибка: ${data.error}</p>`;
-        } else if (data.message && (!data.anomalies_detected || data.anomalies_detected.length === 0) && (!data.all_points_processed || data.all_points_processed.length === 0)) { // Уточнил условие
-             html += `<p>${data.message}</p>`;
-        }
-        else {
+            chartContainerWrapper.style.display = "none";
+        } else if (data.message && (!data.all_points_processed || data.all_points_processed.length === 0)) {
+            html += `<p>${data.message}</p>`;
+            chartContainerWrapper.style.display = "none";
+        } else {
             html += "<p><strong>Сводка:</strong></p><ul>";
             html += `<li>Всего обработано точек: ${data.summary.total_points_evaluated}</li>`;
             html += `<li>Всего найдено аномалий: ${data.summary.total_anomalies}</li>`;
@@ -230,8 +327,7 @@
 
             if (data.anomalies_detected && data.anomalies_detected.length > 0) {
                 html += "<p><strong>Обнаруженные аномалии:</strong></p>";
-                // Заголовки для таблицы аномалий
-                html += '<table class="preview-table"><thead><tr><th>Timestamp</th><th>Actual Value</th><th>Predicted Value</th><th>MSE</th><th>Type</th></tr></thead><tbody>';
+                html += '<table class="preview-table"><thead><tr><th>Время</th><th>Факт.</th><th>Предск.</th><th>MSE</th><th>Тип</th></tr></thead><tbody>';
                 data.anomalies_detected.forEach(anomaly => {
                     let type = [];
                     if (anomaly.is_anomaly_mse) type.push("MSE");
@@ -240,38 +336,184 @@
                         <td>${anomaly.timestamp}</td>
                         <td>${typeof anomaly.actual === 'number' ? anomaly.actual.toFixed(2) : anomaly.actual}</td>
                         <td>${typeof anomaly.prediction === 'number' ? anomaly.prediction.toFixed(2) : anomaly.prediction}</td>
-                        <td>${typeof anomaly.mse === 'number' ? anomaly.mse.toFixed(4) : anomaly.mse}</td>
+                        <td>${typeof anomaly.mse === 'number' ? anomaly.mse.toExponential(2) : anomaly.mse}</td>
                         <td>${type.join(", ")}</td>
                     </tr>`;
                 });
                 html += "</tbody></table>";
-            } else if (data.summary && data.summary.total_points_evaluated > 0) { // Добавил проверку, что точки были, но аномалий нет
+            } else if (data.summary && data.summary.total_points_evaluated > 0) {
                 html += "<p>Аномалий не обнаружено среди обработанных точек.</p>";
-            } else if (!data.message) { // Если нет сообщения о нехватке данных
-                 html += "<p>Нет данных для отображения аномалий.</p>";
+            } else if (!data.message) {
+                html += "<p>Нет данных для отображения аномалий.</p>";
+            }
+
+            if (data.all_points_processed && data.all_points_processed.length > 0) {
+                chartContainerWrapper.style.display = "block";
+                renderAnomalyChart(data.all_points_processed);
+            } else {
+                chartContainerWrapper.style.display = "none";
             }
         }
         resultsArea.innerHTML = html;
     }
 
-    uploadArea.addEventListener("dragover", function(event) {
+    function renderAnomalyChart(allProcessedPoints) {
+        const timestamps = allProcessedPoints.map(d => d.timestamp);
+        const actualValues = allProcessedPoints.map(d => d.actual);
+        const predictedValues = allProcessedPoints.map(d => d.prediction);
+
+
+        const pointStyles = allProcessedPoints.map(d => d.is_anomaly ? 'crossRot' : 'circle');
+        const pointRadii = allProcessedPoints.map(d => d.is_anomaly ? 8 : 0);
+        const pointBorderWidths = allProcessedPoints.map(d => d.is_anomaly ? 2.5 : 0.5);
+        const pointBackgroundColors = allProcessedPoints.map(d => d.is_anomaly ? 'rgba(255, 0, 0, 1)' : 'royalblue');
+        const pointBorderColors = allProcessedPoints.map(d => d.is_anomaly ? 'rgba(139, 0, 0, 1)' : 'darkblue');
+
+
+        const pointHoverRadii = allProcessedPoints.map(d => d.is_anomaly ? 10 : 4);
+        const pointHoverBackgroundColors = allProcessedPoints.map(d => d.is_anomaly ? 'rgba(255, 0, 0, 1)' : 'royalblue');
+        const pointHoverBorderColors = allProcessedPoints.map(d => d.is_anomaly ? 'rgba(255, 85, 85, 1)' : 'darkblue');
+        const pointHoverBorderWidths = allProcessedPoints.map(d => d.is_anomaly ? 3 : 1);
+
+        const ctx = document.getElementById('anomalyChart').getContext('2d');
+        if (myAnomalyChart) {
+            myAnomalyChart.destroy();
+        }
+
+        myAnomalyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Реальные значения',
+                    data: actualValues,
+                    borderColor: 'royalblue',
+                    borderWidth: 1.5,
+                    tension: 0.1,
+                    fill: false,
+
+                    pointStyle: pointStyles,
+                    pointRadius: pointRadii,
+                    pointBorderWidth: pointBorderWidths,
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointBorderColor: pointBorderColors,
+
+                    pointHoverRadius: pointHoverRadii,
+                    pointHoverBackgroundColor: pointHoverBackgroundColors,
+                    pointHoverBorderColor: pointHoverBorderColors,
+                    pointHoverBorderWidth: pointHoverBorderWidths,
+                    order: 1,
+                    clip: false
+                }, {
+                    label: 'Предсказания LSTM',
+                    data: predictedValues,
+                    borderColor: 'darkorange',
+                    borderWidth: 1.5,
+                    tension: 0.1,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    order: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'category',
+                        title: {
+                            display: true,
+                            text: 'Время'
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 15,
+                            maxRotation: 70,
+                            minRotation: 30,
+                            callback: function (value, index, ticks) {
+                                const date = new Date(this.getLabelForValue(value));
+                                return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Количество запросов'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Обнаружение аномалий LSTM на загруженных данных',
+                        font: {size: 18, weight: 'bold'},
+                        padding: {top: 10, bottom: 20}
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {font: {size: 14}}
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function (tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toFixed(2);
+                                }
+
+                                const dataIndex = context.dataIndex;
+                                const pointData = allProcessedPoints[dataIndex];
+
+                                if (pointData && pointData.is_anomaly) {
+                                    label += ' (АНОМАЛИЯ)';
+                                }
+                                if (pointData && typeof pointData.mse === 'number') {
+                                    label += ` | MSE: ${pointData.mse.toExponential(2)}`;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false,
+                }
+
+            }
+        });
+    }
+
+
+    uploadArea.addEventListener("dragover", function (event) {
         event.preventDefault();
-        uploadArea.style.borderColor = "#666";
+        uploadArea.classList.add("dragover");
     });
-    uploadArea.addEventListener("dragleave", function(event) {
+    uploadArea.addEventListener("dragleave", function (event) {
         event.preventDefault();
-        uploadArea.style.borderColor = "#ccc";
+        uploadArea.classList.remove("dragover");
     });
-    uploadArea.addEventListener("drop", function(event) {
+    uploadArea.addEventListener("drop", function (event) {
         event.preventDefault();
-        uploadArea.style.borderColor = "#ccc";
+        uploadArea.classList.remove("dragover");
         if (event.dataTransfer.files.length) {
             fileInput.files = event.dataTransfer.files;
-            const changeEvent = new Event('change');
+            const changeEvent = new Event('change', {bubbles: true});
             fileInput.dispatchEvent(changeEvent);
         }
     });
-
 </script>
 </body>
 </html>
