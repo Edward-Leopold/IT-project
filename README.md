@@ -12,6 +12,12 @@ python -m venv venv
 ```
 .\venv\Scripts\activate
 ```
+для mac/linux
+```
+source .venv/bin/activate
+```
+
+
 
 Выполните установку зависимостей
 ```
